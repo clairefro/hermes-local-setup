@@ -9,7 +9,7 @@ Containerized setup for **Hermes Agent**, the self-improving AI assistant by Nou
    - Start the **Local Server** on port `1234`
    - Ensure CORS is enabled
 
-2. **Launch the Agent:**
+2. **Launch the Agent**
 
    ```bash
    docker compose run --rm hermes

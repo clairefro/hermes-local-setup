@@ -1,0 +1,24 @@
+services:
+  hermes:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes-agent
+    # Allows interactive terminal input
+    stdin_open: true
+    tty: true
+    # Connects the container to your host machine's network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Syncs agent files to your host for easy exploration
+      - ./hermes_data:/opt/data
+    environment:
+      # LM Studio Connection
+      - OPENAI_BASE_URL=http://host.docker.internal:1234/v1
+      - OPENAI_API_KEY=lm-studio
+      # Initial setup triggers
+      - HERMES_SETUP_SKIP=false
+    # Ensures the agent has enough memory for heavy tasks
+    deploy:
+      resources:
+        limits:
+          memory: 4G

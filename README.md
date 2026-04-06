@@ -16,9 +16,63 @@ Containerized setup for **Hermes Agent**, the self-improving AI assistant by Nou
    ```
 
 3. **Bootstrap**
-   On first run, Hermes launches an interactive setup wizard. Since the environment variables are pre-set in `docker-compose.yml`, you can simply verify the connection and select your model.
+   On first run, Hermes launches an interactive setup wizard. Follow the prompts to select your model and verify the connection.
 4. **Explore Files:**
-   Open the `hermes_data/` folder on your host machine. Any code, logs, or persistent memories the agent creates will appear here instantly.
+   Agent output (code, docs, artifacts) appears in the `output/` folder on your host. Agent config, memories, and skills are in `hermes_data/`.
+
+---
+
+## Getting the Agent to Generate Output Files
+
+Files the agent writes are persisted to your host via the `output/` volume (mapped to `/app/data` inside the container). By default the agent doesn't know this path — you need to tell it once via `SOUL.md`, which is injected into every message as a standing instruction.
+
+### 1. Update SOUL.md
+
+Open `hermes_data/SOUL.md` and add the following (create the file if it doesn't exist):
+
+```markdown
+## Environment
+
+When writing files, always use `/app/data/` as the workspace root. This path is mounted to the user's host machine, so anything written here is persisted. Do not write files to any other path unless explicitly instructed.
+```
+
+SOUL.md is reloaded every message — no container restart needed.
+
+### 2. Smoke Test
+
+Verify everything is wired up by prompting Hermes:
+
+> Write a file called `hello.txt` with the content "Hello from Hermes!". Confirm the full path you wrote it to.
+
+Then on your host:
+
+```bash
+cat output/hello.txt
+# Hello from Hermes!
+```
+
+### Practical Example
+
+> Research the history of the Linux kernel and write a detailed summary to `/app/data/linux_kernel_history.md`.
+
+The file will appear at `output/linux_kernel_history.md` on your host as soon as the agent writes it.
+
+---
+
+## Re-running the Setup Wizard
+
+The `hermes_data/` directory is gitignored — only the empty directory placeholder is committed. Hermes will run the setup wizard automatically on first launch and generate a fresh `config.yaml` locally.
+
+To reconfigure at any time (change provider, model, API key, etc.):
+
+- **From inside the agent:** Type `/model` in the chat to interactively switch your provider or model without restarting.
+- **Full wizard re-run:** Delete the config and relaunch:
+  1. ```bash
+     rm hermes_data/config.yaml
+     ```
+  2. ```bash
+     docker compose run --rm hermes
+     ```
 
 ---
 
@@ -53,8 +107,10 @@ To use a cloud provider for more complex reasoning:
 
 ## Data & Privacy
 
-- **Persistent Memory:** All "skills" and "memories" the agent learns are saved to `hermes_data/`.
-- **Git Safety:** The `.gitignore` inside `hermes_data/` ensures your private conversations and agent-generated code stay off GitHub while keeping the folder structure intact for new clones.
+- **Output files:** Anything the agent writes (code, docs, artifacts) goes to `output/` on your host, mapped to `/app/data` inside the container.
+- **Agent state:** Config, memories, skills, and logs are stored in `hermes_data/`, mapped to `/opt/data` inside the container.
+- **Git Safety:** Both `output/` and `hermes_data/` contents are gitignored — none of your conversations, credentials, or agent-generated files will be committed to GitHub. Only the empty directory placeholders are tracked.
 - **Structure:**
-  - `hermes_data/` - The workspace (Mounted Volume).
+  - `hermes_data/` - Agent workspace (config, memories, skills). Populated at runtime, never committed.
+  - `output/` - Agent-generated files. Populated at runtime, never committed.
   - `docker-compose.yml` - Container orchestration.

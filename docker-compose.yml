@@ -9,8 +9,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      # Syncs agent files to your host for easy exploration
+      # Hermes agent config, skills, and memories
       - ./hermes_data:/opt/data
+      # Output files written by the agent (e.g. code, docs, artifacts)
+      - ./output:/app/data
     environment:
       # LM Studio Connection
       - OPENAI_BASE_URL=http://host.docker.internal:1234/v1

@@ -11,8 +11,8 @@ services:
     volumes:
       # Hermes agent config, skills, and memories
       - ./hermes_data:/opt/data
-      # Output files written by the agent (e.g. code, docs, artifacts)
-      - ./output:/app/data
+      # Working directory for agent-generated files (e.g. code, docs, artifacts)
+      - ./working_dir:/app/data
     environment:
       # LM Studio Connection
       - OPENAI_BASE_URL=http://host.docker.internal:1234/v1

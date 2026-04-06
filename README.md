@@ -8,6 +8,7 @@ Containerized setup for **Hermes Agent**, the self-improving AI assistant by Nou
    - Open **LM Studio** and load `Qwen2.5-Coder-7B-Instruct-GGUF`
    - Start the **Local Server** on port `1234`
    - Ensure CORS is enabled
+   - Set **Context Length** to at least **17000** tokens (the Hermes system prompt alone is ~17K tokens). Qwen2.5-Coder-7B supports up to 32K — setting it to `32768` gives the most headroom for long conversations.
 
 2. **Launch the Agent**
 
@@ -18,13 +19,13 @@ Containerized setup for **Hermes Agent**, the self-improving AI assistant by Nou
 3. **Bootstrap**
    On first run, Hermes launches an interactive setup wizard. Follow the prompts to select your model and verify the connection.
 4. **Explore Files:**
-   Agent output (code, docs, artifacts) appears in the `output/` folder on your host. Agent config, memories, and skills are in `hermes_data/`.
+   Agent output (code, docs, artifacts) appears in the `working_dir/` folder on your host. Agent config, memories, and skills are in `hermes_data/`.
 
 ---
 
 ## Getting the Agent to Generate Output Files
 
-Files the agent writes are persisted to your host via the `output/` volume (mapped to `/app/data` inside the container). By default the agent doesn't know this path — you need to tell it once via `SOUL.md`, which is injected into every message as a standing instruction.
+Files the agent writes are persisted to your host via the `working_dir/` volume (mapped to `/app/data` inside the container). By default the agent doesn't know this path — you need to tell it once via `hermes_data/SOUL.md`, which is injected into every message as a standing instruction.
 
 ### 1. Update SOUL.md
 
@@ -33,7 +34,12 @@ Open `hermes_data/SOUL.md` and add the following (create the file if it doesn't 
 ```markdown
 ## Environment
 
-When writing files, always use `/app/data/` as the workspace root. This path is mounted to the user's host machine, so anything written here is persisted. Do not write files to any other path unless explicitly instructed.
+You are running inside a Docker container with two mounted volumes:
+
+- `/app/data/` — your working directory for all artifacts. Read and write files here. This is mounted to the user's host machine and persisted across sessions.
+- `/opt/data/` — Hermes configuration and state (config, memories, skills). Managed by Hermes internally — do not write arbitrary files here.
+
+**Default rule:** Always use `/app/data/` as the base path when creating, writing, or saving any file, unless the user explicitly specifies otherwise. Never use `/tmp/`, `/root/`, `/home/`, or bare relative paths.
 ```
 
 SOUL.md is reloaded every message — no container restart needed.
@@ -47,15 +53,22 @@ Verify everything is wired up by prompting Hermes:
 Then on your host:
 
 ```bash
-cat output/hello.txt
+cat working_dir/hello.txt
 # Hello from Hermes!
 ```
 
 ### Practical Example
 
-> Research the history of the Linux kernel and write a detailed summary to `/app/data/linux_kernel_history.md`.
+> Research the history of the Linux kernel and write a detailed summary named `linux_kernel_history.md`.
 
-The file will appear at `output/linux_kernel_history.md` on your host as soon as the agent writes it.
+The file will appear at `working_dir/linux_kernel_history.md` on your host as soon as the agent writes it.
+
+---
+
+## Tips
+
+- **Start a new chat thread:** Type `/reset` in the agent chat to clear the conversation context and start fresh. Persistent memories and skills are preserved.
+- **Switch model/provider:** Type `/model` to interactively change your model or provider without restarting the container.
 
 ---
 
@@ -63,16 +76,14 @@ The file will appear at `output/linux_kernel_history.md` on your host as soon as
 
 The `hermes_data/` directory is gitignored — only the empty directory placeholder is committed. Hermes will run the setup wizard automatically on first launch and generate a fresh `config.yaml` locally.
 
-To reconfigure at any time (change provider, model, API key, etc.):
+To reconfigure at any time (change provider, model, API key, etc.), delete the config and relaunch:
 
-- **From inside the agent:** Type `/model` in the chat to interactively switch your provider or model without restarting.
-- **Full wizard re-run:** Delete the config and relaunch:
-  1. ```bash
-     rm hermes_data/config.yaml
-     ```
-  2. ```bash
-     docker compose run --rm hermes
-     ```
+1. ```bash
+   rm hermes_data/config.yaml
+   ```
+2. ```bash
+   docker compose run --rm hermes
+   ```
 
 ---
 
@@ -107,10 +118,36 @@ To use a cloud provider for more complex reasoning:
 
 ## Data & Privacy
 
-- **Output files:** Anything the agent writes (code, docs, artifacts) goes to `output/` on your host, mapped to `/app/data` inside the container.
+- **Output files:** Anything the agent writes (code, docs, artifacts) goes to `working_dir/` on your host, mapped to `/app/data` inside the container.
 - **Agent state:** Config, memories, skills, and logs are stored in `hermes_data/`, mapped to `/opt/data` inside the container.
-- **Git Safety:** Both `output/` and `hermes_data/` contents are gitignored — none of your conversations, credentials, or agent-generated files will be committed to GitHub. Only the empty directory placeholders are tracked.
+- **Git Safety:** Both `working_dir/` and `hermes_data/` contents are gitignored — none of your conversations, credentials, or agent-generated files will be committed to GitHub. Only the empty directory placeholders are tracked.
 - **Structure:**
   - `hermes_data/` - Agent workspace (config, memories, skills). Populated at runtime, never committed.
-  - `output/` - Agent-generated files. Populated at runtime, never committed.
+  - `working_dir/` - Agent-generated files. Populated at runtime, never committed.
   - `docker-compose.yml` - Container orchestration.
+
+---
+
+## Using Podman
+
+This setup is compatible with Podman on **Linux** with no changes — `host-gateway` resolves correctly and `host.docker.internal` works as expected.
+
+On **macOS**, Podman runs inside a Linux VM, so `host-gateway` resolves to the VM rather than your Mac. Replace `host.docker.internal` with `host.containers.internal` in `docker-compose.yml`:
+
+```yaml
+extra_hosts:
+  - "host.containers.internal:host-gateway"
+```
+
+And update `OPENAI_BASE_URL` accordingly:
+
+```yaml
+environment:
+  - OPENAI_BASE_URL=http://host.containers.internal:1234/v1
+```
+
+Then run with:
+
+```bash
+podman compose run --rm hermes
+```

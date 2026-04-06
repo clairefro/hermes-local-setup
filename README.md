@@ -5,13 +5,17 @@ Containerized setup for **Hermes Agent**, the self-improving AI assistant by Nou
 ## Quick Start
 
 1. **Start your LLM:**
-   - Open **LM Studio** and load `Qwen2.5-Coder-7B-Instruct-GGUF`.
-   - Start the **Local Server** on port `1234`.
+   - Open **LM Studio** and load `Qwen2.5-Coder-7B-Instruct-GGUF`
+   - Start the **Local Server** on port `1234`
+   - Ensure CORS is enabled
+
 2. **Launch the Agent:**
+
    ```bash
    docker compose run --rm hermes
    ```
-3. **The Bootstrapper:**
+
+3. **Bootstrap**
    On first run, Hermes launches an interactive setup wizard. Since the environment variables are pre-set in `docker-compose.yml`, you can simply verify the connection and select your model.
 4. **Explore Files:**
    Open the `hermes_data/` folder on your host machine. Any code, logs, or persistent memories the agent creates will appear here instantly.

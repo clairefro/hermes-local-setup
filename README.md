@@ -162,14 +162,22 @@ podman compose run --rm hermes
 
 ## Recommended Local Models
 
+**Preferred:**
+
+| Model             | Size (Q4_K_M) | Notes                                                                                 |
+| ----------------- | ------------- | ------------------------------------------------------------------------------------- |
+| **glm-4.7-flash** | ~4.7 GB       | Fast, highly capable, and instruction-tuned. Excels at agentic tasks and general use. |
+
+---
+
 `Qwen2.5-Coder-7B-Instruct` works for code-heavy tasks but is a code-completion model — not optimized for agentic instruction following, planning, or multi-step tool use. Here are better options:
 
 ### Smallest but not strongest
 
-| Model                     | Size (Q4_K_M) | Notes                                                                                                                                                              |
-| ------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Hermes-3-Llama-3.1-8B** | ~4.9 GB       | Made by Nous Research (same team as Hermes Agent). Trained specifically on the Hermes prompt/function-calling schema — best alignment with this agent's internals. |
-| **Qwen2.5-7B-Instruct**   | ~4.7 GB       | The general-instruction variant of Qwen2.5 — noticeably better at following complex instructions than the Coder variant.                                           |
+| Model                     | Size (Q4_K_M) | Notes                                                                                                                    |
+| ------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Hermes-3-Llama-3.1-8B** | ~4.9 GB       | Made by Nous Research (same team as Hermes Agent). Not particularly great at tool calling, it turns out                  |
+| **Qwen2.5-7B-Instruct**   | ~4.7 GB       | The general-instruction variant of Qwen2.5 — noticeably better at following complex instructions than the Coder variant. |
 
 ### Better quality (14–24B, needs ~16GB+ RAM)
 
@@ -185,6 +193,6 @@ podman compose run --rm hermes
 | ------------------------ | ------------- | --------------------------------------------- |
 | **Qwen2.5-32B-Instruct** | ~19 GB        | Significant jump in agentic task performance. |
 
-**Start with Hermes-3-Llama-3.1-8B** — it's the same size as Qwen2.5-Coder-7B, purpose-built for agentic workflows, and directly aligned with Hermes Agent's prompt format. All models are available as GGUF on HuggingFace and loadable in LM Studio.
+**Start with glm-4.7-flash** — it's fast, instruction-tuned, and excels at agentic workflows. All models are available as GGUF on HuggingFace and loadable in LM Studio.
 
 Remember to set a **Context Length ≥ 17000** (32768 recommended) in LM Studio for whichever model you use — the Hermes system prompt alone is ~17K tokens.
